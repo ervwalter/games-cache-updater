@@ -188,16 +188,11 @@ namespace GamesCacheUpdater
                 }
             }
 
-            // collect up all the expansions
-            var expansions = from g in games
-                             where g.IsExpansion
-                             orderby g.Name
-                             select g;
-
             var articles = "the,a,an,het,een,de,das,ein,der,le,la,il,el".Split(',');
             Regex removeArticles = new Regex("^(" + string.Join("|", articles.Select(a => a + @"\ ")) + ")");
             Regex descriptionRegEx = new Regex(@"%Description:(.*\w+.*)$");
             Regex playingTimeRegEx = new Regex(@"%PlayingTime:(.*\w+.*)$");
+            Regex expansionCommentExpression = new Regex(@"%Expands:(.*\w+.*)\[(\d+)\]", RegexOptions.Compiled);
 
             foreach (var game in games)
             {
@@ -218,11 +213,9 @@ namespace GamesCacheUpdater
                     game.Designers = gameDetails.Designers;
                     if (!game.IsExpansion)
                     {
-                        game.Description = HttpUtility.HtmlDecode(gameDetails.Description).Trim();
+                        //game.Description = HttpUtility.HtmlDecode(gameDetails.Description).Trim();
                     }
                 }
-
-                //game.HomePlays = game.NumPlays;
 
                 if (!string.IsNullOrWhiteSpace(game.PrivateComment))
                 {
@@ -248,23 +241,16 @@ namespace GamesCacheUpdater
                         }
 
                     }
-                    //if (game.PrivateComment.Contains("%NoMenu%"))
-                    //{
-                    //    game.ExcludeFromMenu = true;
-                    //}
-                    //if (game.PrivateComment.Contains("%Spotlight%"))
-                    //{
-                    //    game.SpotlightCandidate = true;
-                    //}
-                    //if (game.PrivateComment.Contains("%Staple%"))
-                    //{
-                    //    game.StapleGame = true;
-                    //}
                 }
 
             }
 
-            Regex expansionCommentExpression = new Regex(@"%Expands:(.*\w+.*)\[(\d+)\]", RegexOptions.Compiled);
+            // collect up all the expansions
+            var expansions = from g in games
+                             where g.IsExpansion
+                             orderby g.Name
+                             select g;
+
             foreach (var expansion in expansions)
             {
                 if (_gamesById.ContainsKey(expansion.GameId))
@@ -311,6 +297,27 @@ namespace GamesCacheUpdater
                     where !g.IsExpansion
                     orderby g.SortableName
                     select g;
+
+            Regex startsWithAlpha = new Regex("^[a-z]");
+            foreach (var game in games)
+            {
+                if (game.Expansions != null)
+                {
+                    foreach (var expansion in game.Expansions)
+                    {
+                        var parentName = game.Name.ToLower();
+                        if (parentName.Length < expansion.Name.Length && expansion.Name.ToLower().Substring(0, parentName.Length) == parentName)
+                        {
+                            expansion.ShortName = expansion.Name.Substring(parentName.Length).TrimStart('–', '-', ':', ' ');
+                        }
+                        else
+                        {
+                            expansion.ShortName = expansion.Name.Trim();
+                        }
+                        expansion.SortableShortName = removeArticles.Replace(expansion.ShortName.ToLower(),"");
+                    }
+                }
+            }
 
             _collection = games.ToList();
         }

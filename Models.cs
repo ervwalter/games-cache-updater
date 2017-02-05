@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,6 +19,8 @@ namespace GamesCacheUpdater
         public string GameId { get; set; }
         public string Name { get; set; }
         public string SortableName { get; set; }
+        public string ShortName { get; set; }
+        public string SortableShortName { get; set; }
         public string Description { get; set; }
         public string Image { get; set; }
         public string Thumbnail { get; set; }
@@ -43,12 +46,6 @@ namespace GamesCacheUpdater
 
         public decimal? Rating { get; set; }
         public int NumPlays { get; set; }
-        //public int HomePlays { get; set; }
-        public List<DateTime> PlayDates { get; set; }
-
-        //public bool ExcludeFromMenu { get; set; }
-        //public bool SpotlightCandidate { get; set; }
-        //public bool StapleGame { get; set; }
 
         public bool Owned { get; set; }
         public bool PreOrdered { get; set; }
@@ -62,7 +59,8 @@ namespace GamesCacheUpdater
         public string UserComment { get; set; }
 
         public DateTime? AcquisitionDate { get; set; }
-        //[JsonIgnore]
+
+        [JsonIgnore]
         public string PrivateComment { get; set; }
 
         public List<CollectionItem> Expansions { get; set; }
@@ -73,6 +71,9 @@ namespace GamesCacheUpdater
             {
                 GameId = this.GameId,
                 Name = this.Name,
+                SortableName = this.SortableName,
+                ShortName = this.ShortName,
+                SortableShortName = this.ShortName,
                 Description = this.Description,
                 Image = this.Image,
                 Thumbnail = this.Thumbnail,
@@ -87,10 +88,10 @@ namespace GamesCacheUpdater
                 BGGRating = this.BGGRating,
                 AverageRating = this.AverageRating,
                 Rank = this.Rank,
+                AverageWeight = this.AverageWeight,
                 Designers = this.Designers,
                 Publishers = this.Publishers,
                 Artists = this.Artists,
-                //HomePlays = this.HomePlays,
                 NumPlays = this.NumPlays,
                 Rating = this.Rating,
                 Owned = this.Owned,
@@ -105,9 +106,6 @@ namespace GamesCacheUpdater
                 AcquisitionDate = this.AcquisitionDate,
                 PrivateComment = this.PrivateComment,
                 Expansions = this.Expansions,
-                //ExcludeFromMenu = this.ExcludeFromMenu,
-                //SpotlightCandidate = this.SpotlightCandidate,
-                //StapleGame = this.StapleGame
             };
         }
 
