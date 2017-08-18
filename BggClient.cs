@@ -214,7 +214,7 @@ namespace GamesCacheUpdater
                             UserComment = item.Element("comment").As<string>(),
                             AcquisitionDate = ParseDate(item.Element("privateinfo").AttributeAs<string>("acquisitiondate")),
                             PrivateComment = item.Descendants("privatecomment").FirstOrDefault().As<string>(),
-                            
+
                         };
 
             return items.ToList();
@@ -283,63 +283,63 @@ namespace GamesCacheUpdater
             var data = DownloadData(url.ToString());
 
             var games = (from item in data.Element("items").Elements("item")
-                        select new GameDetails
-                        {
-                            GameId = item.AttributeAs<string>("id"),
-                            Name = (from name in item.Elements("name")
-                                    where name.AttributeAs<string>("type") == "primary"
-                                    select name).FirstOrDefault().AttributeAs<string>("value"),
-                            Description = item.Element("description").As<string>(),
-                            Image = item.Element("image").As<string>(),
-                            Thumbnail = item.Element("thumbnail").As<string>(),
+                         select new GameDetails
+                         {
+                             GameId = item.AttributeAs<string>("id"),
+                             Name = (from name in item.Elements("name")
+                                     where name.AttributeAs<string>("type") == "primary"
+                                     select name).FirstOrDefault().AttributeAs<string>("value"),
+                             Description = item.Element("description").As<string>(),
+                             Image = item.Element("image").As<string>(),
+                             Thumbnail = item.Element("thumbnail").As<string>(),
 
-                            MinPlayers = item.Element("minplayers").AttributeAs<int?>("value"),
-                            MaxPlayers = item.Element("maxplayers").AttributeAs<int?>("value"),
-                            PlayingTime = item.Element("playingtime").AttributeAs<int?>("value"),
-                            MinPlayingTime = item.Element("minplaytime").AttributeAs<int?>("value"),
-                            MaxPlayingTime = item.Element("maxplaytime").AttributeAs<int?>("value"),
-                            Mechanics = (from link in item.Elements("link")
-                                         where link.AttributeAs<string>("type") == "boardgamemechanic"
-                                         select link.AttributeAs<string>("value")).ToList(),
-
-                            IsExpansion = (from link in item.Elements("link")
-                                           where link.AttributeAs<string>("type") == "boardgamecategory"
-                                             && link.AttributeAs<string>("id") == "1024"
-                                           select link).FirstOrDefault() != null,
-                            YearPublished = item.Element("yearpublished").AttributeAs<int?>("value"),
-
-                            BggRating = item.Element("statistics").Element("ratings").Element("bayesaverage").AttributeAs<decimal?>("value"),
-                            AverageRating = item.Element("statistics").Element("ratings").Element("average").AttributeAs<decimal?>("value"),
-                            Rank = ParseRanking(item.Element("statistics").Element("ratings")),
-                            AverageWeight = item.Element("statistics").Element("ratings").Element("averageweight").AttributeAs<decimal?>("value"),
-
-                            Designers = (from link in item.Elements("link")
-                                         where link.AttributeAs<string>("type") == "boardgamedesigner"
-                                         select link.AttributeAs<string>("value")).ToList(),
-                            Publishers = (from link in item.Elements("link")
-                                          where link.AttributeAs<string>("type") == "boardgamepublisher"
+                             MinPlayers = item.Element("minplayers").AttributeAs<int?>("value"),
+                             MaxPlayers = item.Element("maxplayers").AttributeAs<int?>("value"),
+                             PlayingTime = item.Element("playingtime").AttributeAs<int?>("value"),
+                             MinPlayingTime = item.Element("minplaytime").AttributeAs<int?>("value"),
+                             MaxPlayingTime = item.Element("maxplaytime").AttributeAs<int?>("value"),
+                             Mechanics = (from link in item.Elements("link")
+                                          where link.AttributeAs<string>("type") == "boardgamemechanic"
                                           select link.AttributeAs<string>("value")).ToList(),
-                            Artists = (from link in item.Elements("link")
-                                       where link.AttributeAs<string>("type") == "boardgameartist"
-                                       select link.AttributeAs<string>("value")).ToList(),
 
-                            Expansions = (from link in item.Elements("link")
-                                          where link.AttributeAs<string>("type") == "boardgameexpansion"
-                                             && link.AttributeAs<bool>("inbound") == false
-                                          select new BoardGameLink
-                                          {
-                                              Name = link.AttributeAs<string>("value"),
-                                              GameId = link.AttributeAs<string>("id")
-                                          }).ToList(),
-                            Expands = (from link in item.Elements("link")
-                                       where link.AttributeAs<string>("type") == "boardgameexpansion"
-                                          && link.AttributeAs<bool>("inbound") == true
-                                       select new BoardGameLink
-                                       {
-                                           Name = link.AttributeAs<string>("value"),
-                                           GameId = link.AttributeAs<string>("id")
-                                       }).ToList()
-                       }).ToList();
+                             IsExpansion = (from link in item.Elements("link")
+                                            where link.AttributeAs<string>("type") == "boardgamecategory"
+                                              && link.AttributeAs<string>("id") == "1024"
+                                            select link).FirstOrDefault() != null,
+                             YearPublished = item.Element("yearpublished").AttributeAs<int?>("value"),
+
+                             BggRating = item.Element("statistics").Element("ratings").Element("bayesaverage").AttributeAs<decimal?>("value"),
+                             AverageRating = item.Element("statistics").Element("ratings").Element("average").AttributeAs<decimal?>("value"),
+                             Rank = ParseRanking(item.Element("statistics").Element("ratings")),
+                             AverageWeight = item.Element("statistics").Element("ratings").Element("averageweight").AttributeAs<decimal?>("value"),
+
+                             Designers = (from link in item.Elements("link")
+                                          where link.AttributeAs<string>("type") == "boardgamedesigner"
+                                          select link.AttributeAs<string>("value")).ToList(),
+                             Publishers = (from link in item.Elements("link")
+                                           where link.AttributeAs<string>("type") == "boardgamepublisher"
+                                           select link.AttributeAs<string>("value")).ToList(),
+                             Artists = (from link in item.Elements("link")
+                                        where link.AttributeAs<string>("type") == "boardgameartist"
+                                        select link.AttributeAs<string>("value")).ToList(),
+
+                             Expansions = (from link in item.Elements("link")
+                                           where link.AttributeAs<string>("type") == "boardgameexpansion"
+                                              && link.AttributeAs<bool>("inbound") == false
+                                           select new BoardGameLink
+                                           {
+                                               Name = link.AttributeAs<string>("value"),
+                                               GameId = link.AttributeAs<string>("id")
+                                           }).ToList(),
+                             Expands = (from link in item.Elements("link")
+                                        where link.AttributeAs<string>("type") == "boardgameexpansion"
+                                           && link.AttributeAs<bool>("inbound") == true
+                                        select new BoardGameLink
+                                        {
+                                            Name = link.AttributeAs<string>("value"),
+                                            GameId = link.AttributeAs<string>("id")
+                                        }).ToList()
+                         }).ToList();
 
             foreach (var game in games)
             {
@@ -351,6 +351,24 @@ namespace GamesCacheUpdater
             }
             return games;
 
+        }
+
+        internal List<TopTenItem> GetTopTen(string username)
+        {
+            var url = new Url(BaseUrl).AppendPathSegment("/user").SetQueryParams(new
+            {
+                name = username,
+                top = 1
+            });
+
+            var data = DownloadData(url.ToString());
+            var items = from item in data.Descendants("item")
+                        select new TopTenItem
+                        {
+                            Rank = item.AttributeAs<int>("rank"),
+                            GameId = item.AttributeAs<string>("id")
+                        };
+            return items.ToList();
         }
 
         #region ParseFunctions

@@ -15,10 +15,12 @@ namespace GamesCacheUpdater
             updater.Initialize();
             updater.DownloadPlays();
             updater.DownloadCollection();
+            updater.DownloadTopTen();
             updater.LoadCachedGameDetails();
             updater.DownloadUpdatedGameDetails();
             updater.ProcessPlays();
             updater.ProcessCollection();
+            updater.ProcessTopTen();
             updater.SaveEverything();
         }
     }

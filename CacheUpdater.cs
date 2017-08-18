@@ -18,9 +18,10 @@ namespace GamesCacheUpdater
     public class CacheUpdater
     {
         private const string GameDetailsFilename = "game-details.json";
-        private const string PlaysFileName = "plays-{0}.json";
+        private const string PlaysFilename = "plays-{0}.json";
         private const string RecentPlaysFilename = "recent-plays-{0}.json";
-        private const string CollectionFileName = "collection-{0}.json";
+        private const string TopTenFilename = "top10-{0}.json";
+        private const string CollectionFilename = "collection-{0}.json";
 
         private string _username;
         private string _password;
@@ -33,6 +34,8 @@ namespace GamesCacheUpdater
         Dictionary<string, GameDetails> _gamesById;
 
         List<PlayItem> _plays;
+        List<TopTenItem> _topTen;
+
 
         List<CollectionItem> _collection;
         ILookup<string, CollectionItem> _collectionById;
@@ -114,6 +117,7 @@ namespace GamesCacheUpdater
             var updateNeeded = new HashSet<string>();
             updateNeeded.UnionWith(_collection.Select(g => g.GameId));
             updateNeeded.UnionWith(_plays.Select(p => p.GameId));
+            updateNeeded.UnionWith(_topTen.Select(t => t.GameId));
 
             // filter down to just those we don't already have int the cache
             var available = new HashSet<string>(_games.Select(g => g.GameId));
@@ -155,6 +159,7 @@ namespace GamesCacheUpdater
                     var game = _collectionById[play.GameId].First();
                     play.Image = game.Image;
                     play.Thumbnail = game.Thumbnail;
+                    play.Name = game.Name;
                     if (play.Duration == null)
                     {
                         play.EstimatedDuration = game.PlayingTime;
@@ -171,8 +176,9 @@ namespace GamesCacheUpdater
                     }
                 }
             }
+            _plays = _plays.OrderByDescending(p => p.PlayDate).ThenByDescending(p => p.PlayId).ToList();
         }
-
+         
         public void ProcessCollection()
         {
             Console.WriteLine("Processing {0} collection games", _collection.Count);
@@ -202,15 +208,18 @@ namespace GamesCacheUpdater
                     game.PlayingTime = (game.MinPlayingTime + game.MaxPlayingTime) / 2;
                 }
 
+                GameDetails gameDetails = null;
                 if (_gamesById.ContainsKey(game.GameId))
                 {
-                    var gameDetails = _gamesById[game.GameId];
+                    gameDetails = _gamesById[game.GameId];
                     game.Mechanics = gameDetails.Mechanics;
                     game.BGGRating = gameDetails.BggRating;
                     game.AverageWeight = gameDetails.AverageWeight;
                     game.Artists = gameDetails.Artists;
                     game.Publishers = gameDetails.Publishers;
                     game.Designers = gameDetails.Designers;
+                    gameDetails.Rating = game.Rating; // backfill rating
+                    gameDetails.NumPlays = game.NumPlays; // backfill numPlays
                     if (!game.IsExpansion)
                     {
                         //game.Description = HttpUtility.HtmlDecode(gameDetails.Description).Trim();
@@ -225,6 +234,10 @@ namespace GamesCacheUpdater
                         if (match.Success)
                         {
                             game.Description = match.Groups[1].Value.Trim();
+                            if (gameDetails != null && !string.IsNullOrWhiteSpace(game.Description))
+                            {
+                                gameDetails.Description = game.Description; // backfill description
+                            }
                         }
                     }
 
@@ -322,6 +335,43 @@ namespace GamesCacheUpdater
             _collection = games.ToList();
         }
 
+        internal void DownloadTopTen()
+        {
+            Console.WriteLine("Downloading top 10 for {0}", _username);
+            _topTen = _client.GetTopTen(_username);
+        }
+
+        internal void ProcessTopTen()
+        {
+            foreach (var game in _topTen)
+            {
+                if (_gamesById.ContainsKey(game.GameId))
+                {
+                    var gameDetails = _gamesById[game.GameId];
+                    if (!string.IsNullOrWhiteSpace(gameDetails.Description))
+                    {
+                        var newlinePosition = gameDetails.Description.IndexOf("&#10;");
+                        if (newlinePosition >= 0) {
+                            game.Description = HttpUtility.HtmlDecode(gameDetails.Description.Substring(0, newlinePosition));
+                        }
+                        else
+                        {
+                            game.Description = HttpUtility.HtmlDecode(gameDetails.Description);
+                        }
+                    }
+                    game.Designers = gameDetails.Designers;
+                    game.Image = gameDetails.Image;
+                    game.Mechanics = gameDetails.Mechanics;
+                    game.Name = gameDetails.Name;
+                    game.NumPlays = gameDetails.NumPlays;
+                    game.Rating = gameDetails.Rating;
+                    game.Thumbnail = gameDetails.Thumbnail;
+                    game.YearPublished = gameDetails.YearPublished;
+                }
+
+            }
+        }
+
         public void SaveEverything()
         {
             Console.WriteLine("Saving results to blob storage");
@@ -330,7 +380,7 @@ namespace GamesCacheUpdater
             blob.UploadText(json);
 
             json = JsonConvert.SerializeObject(_plays);
-            blob = _container.GetBlockBlobReference(string.Format(PlaysFileName, _username));
+            blob = _container.GetBlockBlobReference(string.Format(PlaysFilename, _username));
             blob.UploadText(json);
 
             json = JsonConvert.SerializeObject(_plays.Take(100));
@@ -338,10 +388,15 @@ namespace GamesCacheUpdater
             blob.UploadText(json);
 
             json = JsonConvert.SerializeObject(_collection);
-            blob = _container.GetBlockBlobReference(string.Format(CollectionFileName, _username));
+            blob = _container.GetBlockBlobReference(string.Format(CollectionFilename, _username));
+            blob.UploadText(json);
+
+            json = JsonConvert.SerializeObject(_topTen);
+            blob = _container.GetBlockBlobReference(string.Format(TopTenFilename, _username));
             blob.UploadText(json);
 
         }
+
 
     }
 }

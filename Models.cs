@@ -7,13 +7,7 @@ using System.Threading.Tasks;
 
 namespace GamesCacheUpdater
 {
-    public class Collection
-    {
-        public string Username { get; set; }
-        public List<CollectionItem> Games { get; set; }
-        public DateTimeOffset Timestamp { get; set; }
-    }
-
+ 
     public class CollectionItem
     {
         public string GameId { get; set; }
@@ -111,13 +105,6 @@ namespace GamesCacheUpdater
 
     }
 
-    public class Plays
-    {
-        public string Username { get; set; }
-        public List<PlayItem> Items { get; set; }
-        public DateTimeOffset Timestamp { get; set; }
-    }
-
     public class PlayItem
     {
         public string PlayId { get; set; }
@@ -180,29 +167,36 @@ namespace GamesCacheUpdater
         public List<BoardGameLink> Expansions { get; set; }
         public List<BoardGameLink> Expands { get; set; }
 
+        public decimal? Rating { get; set; }
+        public int NumPlays { get; set; }
+
         public DateTimeOffset Timestamp { get; set; }
     }
 
-    public class Comment
-    {
-        public string Username { get; set; }
-        public decimal Rating { get; set; }
-        public string Text { get; set; }
-    }
-
-    public class PlayerPollResult
-    {
-        public int NumPlayers { get; set; }
-        public int Best { get; set; }
-        public int Recommended { get; set; }
-        public int NotRecommended { get; set; }
-
-        public bool NumPlayersIsAndHigher { get; set; }
-    }
-
+    
     public class BoardGameLink
     {
         public string Name { get; set; }
         public string GameId { get; set; }
+    }
+
+    public class TopTenItem
+    {
+        public int Rank;
+
+        public string GameId { get; set; }
+        public string Name { get; set; }
+        public string Image { get; set; }
+        public string Thumbnail { get; set; }
+
+        public decimal? Rating { get; set; }
+        public int NumPlays { get; set; }
+
+
+        public int? YearPublished { get; set; }
+        public List<string> Mechanics { get; set; }
+        public List<string> Designers { get; set; }
+        public string Description { get; set; }
+
     }
 }
