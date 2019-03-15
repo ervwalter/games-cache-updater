@@ -1,4 +1,5 @@
 ﻿using Flurl;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -26,6 +27,12 @@ namespace GamesCacheUpdater
         private const string LegacyBaseUrl = "https://boardgamegeek.com/xmlapi/";
 
         private CookieContainer _cookies = new CookieContainer();
+        private ILogger _log;
+
+        public BggClient(ILogger log)
+        {
+            _log = log;
+        }
 
         private static void ResetMinimumTimeTracker()
         {
@@ -44,7 +51,7 @@ namespace GamesCacheUpdater
             }
         }
 
-        private XDocument DownloadData(string url)
+        private async Task<XDocument> DownloadDataAsync(string url)
         {
             _semaphore.Wait();
             try
@@ -62,7 +69,7 @@ namespace GamesCacheUpdater
                         var request = WebRequest.CreateHttp(url);
                         request.CookieContainer = _cookies;
                         request.Timeout = 15000;
-                        using (var response = (HttpWebResponse)(request.GetResponse()))
+                        using (var response = (HttpWebResponse)(await request.GetResponseAsync()))
                         {
                             if (response.StatusCode == HttpStatusCode.Accepted)
                             {
@@ -92,7 +99,7 @@ namespace GamesCacheUpdater
                             }
                             using (var reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
                             {
-                                data = XDocument.Parse(reader.ReadToEnd());
+                                data = XDocument.Parse(await reader.ReadToEndAsync());
                             }
                         }
                     }
@@ -118,7 +125,7 @@ namespace GamesCacheUpdater
 
         }
 
-        public void Login(string username, string password)
+        public async Task LoginAsync(string username, string password)
         {
             _semaphore.Wait();
             try
@@ -137,15 +144,36 @@ namespace GamesCacheUpdater
                 request.ContentType = "application/x-www-form-urlencoded";
                 request.ContentLength = data.Length;
                 request.AllowAutoRedirect = false;
-                using (var postStream = request.GetRequestStream())
+                using (var postStream = await request.GetRequestStreamAsync())
                 {
                     postStream.Write(data, 0, data.Length);
                     postStream.Flush();
-                    using (var response = (HttpWebResponse)(request.GetResponse()))
+                    HttpWebResponse response = null;
+                    try
                     {
+                        try
+                        {
+                            response = (HttpWebResponse)(await request.GetResponseAsync());
+                        }
+                        catch (WebException ex)
+                        {
+                            response = (HttpWebResponse)ex.Response;
+                            if (response.StatusCode != HttpStatusCode.Redirect && response.StatusCode != HttpStatusCode.MovedPermanently)
+                            {
+                                throw (ex);
+                            }
+                        }
+
                         if (response.StatusCode != HttpStatusCode.Redirect && response.StatusCode != HttpStatusCode.MovedPermanently)
                         {
                             throw new Exception("Invalid login");
+                        }
+                    }
+                    finally
+                    {
+                        if (response != null)
+                        {
+                            response.Dispose();
                         }
                     }
                 }
@@ -157,7 +185,7 @@ namespace GamesCacheUpdater
             }
         }
 
-        public List<CollectionItem> GetCollection(string username, bool expansions)
+        public async Task<List<CollectionItem>> GetCollectionAsync(string username, bool expansions)
         {
             var url = new Url(BaseUrl).AppendPathSegment("/collection").SetQueryParams(new
             {
@@ -168,17 +196,17 @@ namespace GamesCacheUpdater
 
             if (expansions)
             {
-                Console.WriteLine("...downloading expansions");
+                _log.LogInformation("...downloading expansions");
                 url.SetQueryParam("subtype", "boardgameexpansion");
             }
             else
             {
-                Console.WriteLine("...downloading base games");
+                _log.LogInformation("...downloading base games");
                 url.SetQueryParam("excludesubtype", "boardgameexpansion");
 
             }
 
-            var data = DownloadData(url.ToString());
+            var data = await DownloadDataAsync(url.ToString());
             var items = from item in data.Descendants("item")
                         select new CollectionItem
                         {
@@ -220,7 +248,7 @@ namespace GamesCacheUpdater
             return items.ToList();
         }
 
-        public List<PlayItem> GetPlays(string username)
+        public async Task<List<PlayItem>> GetPlaysAsync(string username)
         {
 
             var url = new Url(BaseUrl).AppendPathSegment("/plays").SetQueryParams(new
@@ -231,9 +259,9 @@ namespace GamesCacheUpdater
                 excludesubtype = "videogame"
             });
 
-            Console.WriteLine("...downloading page 1");
+            _log.LogInformation("...downloading page 1");
             var dataPages = new List<XDocument>();
-            dataPages.Add(DownloadData(url.ToString()));
+            dataPages.Add(await DownloadDataAsync(url.ToString()));
             var totalPlays = dataPages[0].Element("plays").AttributeAs<int>("total");
             if (totalPlays > 100)
             {
@@ -241,9 +269,9 @@ namespace GamesCacheUpdater
                 int page = 2;
                 while (remaining > 0)
                 {
-                    Console.WriteLine(string.Format("...downloading page {0}", page));
+                    _log.LogInformation(string.Format("...downloading page {0}", page));
                     url.SetQueryParam("page", page);
-                    dataPages.Add(DownloadData(url.ToString()));
+                    dataPages.Add(await DownloadDataAsync(url.ToString()));
                     page++;
                     remaining -= 100;
                 }
@@ -273,14 +301,14 @@ namespace GamesCacheUpdater
             return plays;
         }
 
-        public List<GameDetails> GetGames(IEnumerable<string> gameIds)
+        public async Task<List<GameDetails>> GetGamesAsync(IEnumerable<string> gameIds)
         {
             var url = new Url(BaseUrl).AppendPathSegment("/thing");
             url.SetQueryParam("stats", 1);
             url.SetQueryParam("id", string.Join(",", gameIds), true);
 
-            Console.WriteLine(string.Format("...downloading details for {0} games", gameIds.Count()));
-            var data = DownloadData(url.ToString());
+            _log.LogInformation(string.Format("...downloading details for {0} games", gameIds.Count()));
+            var data = await DownloadDataAsync(url.ToString());
 
             var games = (from item in data.Element("items").Elements("item")
                          select new GameDetails
@@ -353,7 +381,7 @@ namespace GamesCacheUpdater
 
         }
 
-        internal List<TopTenItem> GetTopTen(string username)
+        internal async Task<List<TopTenItem>> GetTopTenAsync(string username)
         {
             var url = new Url(BaseUrl).AppendPathSegment("/user").SetQueryParams(new
             {
@@ -361,7 +389,7 @@ namespace GamesCacheUpdater
                 top = 1
             });
 
-            var data = DownloadData(url.ToString());
+            var data = await DownloadDataAsync(url.ToString());
             var items = from item in data.Descendants("item")
                         select new TopTenItem
                         {

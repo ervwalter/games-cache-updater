@@ -1,6 +1,6 @@
-﻿using Microsoft.WindowsAzure.Storage;
+﻿using MoreLinq;
+using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
-using MoreLinq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
@@ -12,6 +12,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
+using Microsoft.Extensions.Logging;
 
 namespace GamesCacheUpdater
 {
@@ -23,6 +24,7 @@ namespace GamesCacheUpdater
         private const string TopTenFilename = "top10-{0}.json";
         private const string CollectionFilename = "collection-{0}.json";
 
+        private ILogger _log;
         private string _username;
         private string _password;
         private BggClient _client;
@@ -40,29 +42,30 @@ namespace GamesCacheUpdater
         List<CollectionItem> _collection;
         ILookup<string, CollectionItem> _collectionById;
 
-        public CacheUpdater()
+        public CacheUpdater(ILogger log)
         {
+            _log = log;
         }
 
-        public void Initialize()
+        public async Task InitializeAsync(string storageConnectionString, string username, string password)
         {
-            _storage = CloudStorageAccount.Parse(ConfigurationManager.ConnectionStrings["CacheStorage"].ConnectionString);
-            Console.WriteLine("Connecting to Azure Storage using {0}", _storage.Credentials.AccountName);
+            _storage = CloudStorageAccount.Parse(storageConnectionString);
+            _log.LogInformation("Connecting to Azure Storage using {0}", _storage.Credentials.AccountName);
             _blob = _storage.CreateCloudBlobClient();
             _container = _blob.GetContainerReference("gamescache");
-            _container.CreateIfNotExists();
+            await _container.CreateIfNotExistsAsync();
 
-            _username = ConfigurationManager.AppSettings["bgg_username"];
-            _password = ConfigurationManager.AppSettings["bgg_password"];
-            _client = new BggClient();
+            _username = username;
+            _password = password;
+            _client = new BggClient(_log);
             if (string.IsNullOrWhiteSpace(_password))
             {
-                Console.WriteLine("Using BGG Anonymously");
+                _log.LogInformation("Using BGG Anonymously");
             }
             else
             {
-                Console.WriteLine("Logging into BGG as {0}", _username);
-                _client.Login(_username, _password);
+                _log.LogInformation("Logging into BGG as {0}", _username);
+                await _client.LoginAsync(_username, _password);
             }
 
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings
@@ -73,29 +76,29 @@ namespace GamesCacheUpdater
             };
         }
 
-        public void DownloadPlays()
+        public async Task DownloadPlaysAsync()
         {
-            Console.WriteLine("Downloading plays for {0}", _username);
-            _plays = _client.GetPlays(_username);
+            _log.LogInformation("Downloading plays for {0}", _username);
+            _plays = await _client.GetPlaysAsync(_username);
         }
 
-        public void DownloadCollection()
+        public async Task DownloadCollectionAsync()
         {
-            Console.WriteLine("Downloading collection for {0}", _username);
-            _collection = _client.GetCollection(_username, false)
-                .Concat(_client.GetCollection(_username, true))
+            _log.LogInformation("Downloading collection for {0}", _username);
+            _collection = (await _client.GetCollectionAsync(_username, false))
+                .Concat(await _client.GetCollectionAsync(_username, true))
                 .OrderBy(g => g.Name).ToList();
 
             _collectionById = _collection.ToLookup(g => g.GameId);
         }
 
-        public void LoadCachedGameDetails()
+        public async Task LoadCachedGameDetailsAsync()
         {
-            Console.WriteLine("Loading cached game details");
+            _log.LogInformation("Loading cached game details");
             var blob = _container.GetBlockBlobReference(GameDetailsFilename);
-            if (blob.Exists())
+            if (await blob.ExistsAsync())
             {
-                string json = blob.DownloadText();
+                string json = await blob.DownloadTextAsync();
                 try
                 {
                     _games = JsonConvert.DeserializeObject<List<GameDetails>>(json);
@@ -111,7 +114,7 @@ namespace GamesCacheUpdater
             }
         }
 
-        public void DownloadUpdatedGameDetails()
+        public async Task DownloadUpdatedGameDetailsAsync()
         {
             // collect the list of games that are in plays or in the collection
             var updateNeeded = new HashSet<string>();
@@ -131,11 +134,11 @@ namespace GamesCacheUpdater
             var outdated = _games.Where(g => g.Timestamp.AddHours(-1 * random.NextDouble()) < cutoff);
             updateNeeded.UnionWith(outdated.Select(g => g.GameId));
 
-            Console.WriteLine("Getting updated details for {0} new games and {1} out-of-date games", newCount, updateNeeded.Count - newCount);
+            _log.LogInformation("Getting updated details for {0} new games and {1} out-of-date games", newCount, updateNeeded.Count - newCount);
             _gamesById = _games.ToDictionary(g => g.GameId);
             foreach (var ids in updateNeeded.Batch(50))
             {
-                var games = _client.GetGames(ids);
+                var games = await _client.GetGamesAsync(ids);
                 foreach (var game in games)
                 {
                     _gamesById[game.GameId] = game;
@@ -146,7 +149,7 @@ namespace GamesCacheUpdater
 
         public void ProcessPlays()
         {
-            Console.WriteLine("Processing {0} plays", _plays.Count);
+            _log.LogInformation("Processing {0} plays", _plays.Count);
             foreach (var play in _plays)
             {
                 if (play.Duration.HasValue && play.Duration == 0)
@@ -181,7 +184,7 @@ namespace GamesCacheUpdater
          
         public void ProcessCollection()
         {
-            Console.WriteLine("Processing {0} collection games", _collection.Count);
+            _log.LogInformation("Processing {0} collection games", _collection.Count);
             IEnumerable<CollectionItem> games = _collection;
             var gamesById = _collectionById;
 
@@ -335,10 +338,10 @@ namespace GamesCacheUpdater
             _collection = games.ToList();
         }
 
-        internal void DownloadTopTen()
+        internal async Task DownloadTopTenAsync()
         {
-            Console.WriteLine("Downloading top 10 for {0}", _username);
-            _topTen = _client.GetTopTen(_username);
+            _log.LogInformation("Downloading top 10 for {0}", _username);
+            _topTen = await _client.GetTopTenAsync(_username);
         }
 
         internal void ProcessTopTen()
@@ -372,29 +375,28 @@ namespace GamesCacheUpdater
             }
         }
 
-        public void SaveEverything()
+        public async Task SaveEverythingAsync()
         {
-            Console.WriteLine("Saving results to blob storage");
+            _log.LogInformation("Saving results to blob storage");
             var json = JsonConvert.SerializeObject(_games);
             var blob = _container.GetBlockBlobReference(GameDetailsFilename);
-            blob.UploadText(json);
+            await blob.UploadTextAsync(json);
 
             json = JsonConvert.SerializeObject(_plays);
             blob = _container.GetBlockBlobReference(string.Format(PlaysFilename, _username));
-            blob.UploadText(json);
+            await blob.UploadTextAsync(json);
 
             json = JsonConvert.SerializeObject(_plays.Take(100));
             blob = _container.GetBlockBlobReference(string.Format(RecentPlaysFilename, _username));
-            blob.UploadText(json);
+            await blob.UploadTextAsync(json);
 
             json = JsonConvert.SerializeObject(_collection);
             blob = _container.GetBlockBlobReference(string.Format(CollectionFilename, _username));
-            blob.UploadText(json);
+            await blob.UploadTextAsync(json);
 
             json = JsonConvert.SerializeObject(_topTen);
             blob = _container.GetBlockBlobReference(string.Format(TopTenFilename, _username));
-            blob.UploadText(json);
-
+            await blob.UploadTextAsync(json);
         }
 
 
