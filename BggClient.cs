@@ -133,7 +133,7 @@ namespace GamesCacheUpdater
                 WaitForMinimumTimeToPass();
                 Debug.WriteLine("Logging in " + username);
                 NameValueCollection parameters = HttpUtility.ParseQueryString("");
-                parameters.Add("lasturl", "/");
+                parameters.Add("redirect", "1");
                 parameters.Add("username", username);
                 parameters.Add("password", password);
                 var data = Encoding.ASCII.GetBytes(parameters.ToString());
@@ -143,7 +143,7 @@ namespace GamesCacheUpdater
                 request.Method = "POST";
                 request.ContentType = "application/x-www-form-urlencoded";
                 request.ContentLength = data.Length;
-                request.AllowAutoRedirect = false;
+                //request.AllowAutoRedirect = false;
                 using (var postStream = await request.GetRequestStreamAsync())
                 {
                     postStream.Write(data, 0, data.Length);
@@ -164,7 +164,8 @@ namespace GamesCacheUpdater
                             }
                         }
 
-                        if (response.StatusCode != HttpStatusCode.Redirect && response.StatusCode != HttpStatusCode.MovedPermanently)
+                        var usernameCookie = _cookies.GetCookies(new Uri("https://boardgamegeek.com"))["bggusername"];
+                        if (usernameCookie == null || usernameCookie.Value == null || usernameCookie.Value != username)
                         {
                             throw new Exception("Invalid login");
                         }
