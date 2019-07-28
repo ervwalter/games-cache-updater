@@ -231,6 +231,10 @@ namespace GamesCacheUpdater
 
                 if (!string.IsNullOrWhiteSpace(game.PrivateComment))
                 {
+                    if (game.PrivateComment.Contains("%CollectingOnly%"))
+                    {
+                        game.CollectingOnly = true;
+                    }
                     if (game.PrivateComment.Contains("%Description:"))
                     {
                         var match = descriptionRegEx.Match(game.PrivateComment);

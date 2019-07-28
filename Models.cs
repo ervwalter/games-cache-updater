@@ -49,8 +49,9 @@ namespace GamesCacheUpdater
         public bool WantToBuy { get; set; }
         public bool WantToPlay { get; set; }
         public bool WishList { get; set; }
-
+        public int WishListPriority { get; set; }
         public string UserComment { get; set; }
+        public bool CollectingOnly { get; set; }
 
         public DateTime? AcquisitionDate { get; set; }
 

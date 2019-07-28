@@ -239,6 +239,7 @@ namespace GamesCacheUpdater
                             WantToBuy = item.Element("status").AttributeAs<int>("wanttobuy").AsBool(),
                             WantToPlay = item.Element("status").AttributeAs<int>("wanttoplay").AsBool(),
                             WishList = item.Element("status").AttributeAs<int>("wishlist").AsBool(),
+                            WishListPriority = item.Element("status").AttributeAs<int>("wishlistpriority"),
 
                             UserComment = item.Element("comment").As<string>(),
                             AcquisitionDate = ParseDate(item.Element("privateinfo").AttributeAs<string>("acquisitiondate")),
