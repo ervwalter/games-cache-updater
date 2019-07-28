@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29123.88
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UpdaterFunctions", "UpdaterFunctions.csproj", "{35C4665C-4D5A-42B5-B5F8-82274A810F33}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{35C4665C-4D5A-42B5-B5F8-82274A810F33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35C4665C-4D5A-42B5-B5F8-82274A810F33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35C4665C-4D5A-42B5-B5F8-82274A810F33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35C4665C-4D5A-42B5-B5F8-82274A810F33}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {61CE9771-1E94-4FAD-9CB6-82AF486661E1}
+	EndGlobalSection
+EndGlobal
