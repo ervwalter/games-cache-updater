@@ -95,7 +95,6 @@ namespace GamesCacheUpdater
             return (T)Convert.ChangeType(value, t);
         }
 
-
         public static bool AsBool(this int value)
         {
             return value == 1;

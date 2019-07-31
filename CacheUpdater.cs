@@ -366,10 +366,18 @@ namespace GamesCacheUpdater
                             game.Description = HttpUtility.HtmlDecode(gameDetails.Description);
                         }
                     }
+                    if (_collectionById.Contains(game.GameId))
+                    {
+                        var collectionEntry = _collectionById[game.GameId].First();
+                        game.Name = collectionEntry.Name;
+                    }
+                    else
+                    {
+                        game.Name = gameDetails.Name;
+                    }
                     game.Designers = gameDetails.Designers;
                     game.Image = gameDetails.Image;
                     game.Mechanics = gameDetails.Mechanics;
-                    game.Name = gameDetails.Name;
                     game.NumPlays = gameDetails.NumPlays;
                     game.Rating = gameDetails.Rating;
                     game.Thumbnail = gameDetails.Thumbnail;
