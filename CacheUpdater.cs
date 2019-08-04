@@ -167,6 +167,7 @@ namespace GamesCacheUpdater
                     {
                         play.EstimatedDuration = game.PlayingTime;
                     }
+                    play.Rating = game.Rating;
                 }
                 else if (_gamesById.ContainsKey(play.GameId))
                 {

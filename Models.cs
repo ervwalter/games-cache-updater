@@ -122,6 +122,7 @@ namespace GamesCacheUpdater
         public bool ExcludeFromStats { get; set; }
         public List<Player> Players { get; set; }
         public string Comments { get; set; }
+        public decimal? Rating { get; internal set; }
     }
 
     public class Player
