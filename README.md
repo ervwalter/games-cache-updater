@@ -1,3 +1,10 @@
+# Games Cache Updater [ARCHIVED]
+
+**This repo is deprecated.**  
+
+The new home for this code is: https://github.com/ervwalter/games.ewal.net
+
+-----
 
 This is the source for the Azure Function that updates data for the [games.ewal.net](https://games.ewal.net) website.
 
